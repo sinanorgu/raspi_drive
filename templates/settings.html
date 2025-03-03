@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+
+{% block title %}Home - Raspi Drive{% endblock %}
+
+{% block content %}
+    <h1>Settings</h1>
+    
+    <table>
+        
+        <tbody>
+            <tr>
+                <td>Username</td>
+                <td>{{username}}</td>
+            </tr>
+            <tr>
+                <td>password</td>
+                <td>saka saka </td>
+            </tr>
+            <tr>
+                <td colspan="2"><button>delete my account</button></td>
+                
+            </tr>
+        </tbody>
+    </table>
+
+
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #ddd;
+        }
+    </style>
+    
+{% endblock %}

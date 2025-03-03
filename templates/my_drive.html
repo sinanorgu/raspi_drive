@@ -1,0 +1,203 @@
+{% extends "layout.html" %}
+
+{% block title %}My Drive - Raspi Drive{% endblock %}
+
+{% block head %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<style>
+    #back-button {
+            display: inline-block;
+            padding: 10px 15px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            cursor: pointer;
+            border: none;
+        }
+
+        #back-button:hover {
+            background: #0056b3;
+        }
+    .menu {
+        display: none;
+        position: absolute;
+        background: white;
+        border: 1px solid #ccc;
+        padding: 5px;
+        box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    .menu a {
+        display: block;
+        padding: 5px;
+        text-decoration: none;
+        color: black;
+    }
+
+    .menu a:hover {
+        background: #f0f0f0;
+    }
+
+    .item {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .options {
+        cursor: pointer;
+        font-size: 18px;
+    }
+    #item-list {
+        width: relative;
+    }
+    .folder_file_link{
+        text-decoration: none;
+        color: black;
+    }
+    .folder_file_link:hover{
+        text-decoration: none; /* Tüm durumlarda altı çizgiyi engelle */
+        color: inherit; 
+    }
+    .file_size{
+        margin-left: 10px;
+        opacity: 0.2;
+    }
+
+   
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+    {% if error %}
+        <p>{{ error }}</p>
+    {% else %}
+
+    <h1>My Drive</h1>
+
+    <div id="item-list">
+
+        <button id="back-button" >⬅ Üst Klasör</button>
+        <div id = "path">
+
+        <a href="/my_drive">My Drive</a> 
+        {% for p in path_list %}
+        <a href="{{ url_for('browse_folder',path = p.path) }}">/ {{ p.name }}</a> 
+        {% endfor %}
+        
+        </div>
+
+        <br>
+        <br>
+        
+
+
+        <button id="create-folder" data-path="{{current_folder_path}}">Klasör Oluştur</button>
+
+
+        <form action="{{url_for('upload_file',path = current_folder_path)}}"  enctype="multipart/form-data"  method="post">
+            <input type="file" name="file" id="file"  multiple>
+            <input type="submit" value="Dosya Yükle">
+
+        </form>
+
+
+        {% for item in item_list %}
+        <div class="item" data-path="{{ item.path }}" data-type="{{ item.is_file }}">
+
+                {% if item.is_file %}
+                <a href="{{url_for('browse_file',path = item.path)}}" class="folder_file_link" target="_blank">
+                    <span>📄 {{ item.name }}</span>
+                </a>
+                {% else %}
+                    <a href="{{url_for('browse_folder',path = item.path)}}" class="folder_file_link" >
+                        <span>📁 {{ item.name }}</span>
+                    </a>
+                {% endif %}
+                <span class = "file_size" >{{ item.file_size }}</span>
+                <span class="options">⋮</span>
+
+
+                
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="menu" id="context-menu">
+        <a href="#" id="update-item">Güncelle</a>
+        <a href="#" id="delete-item">Sil</a>
+    </div>
+    
+    <script>
+        $(document).ready(function() {
+            let selectedItemId = null;
+
+            $(".options").on("click", function(event) {
+                event.stopPropagation();
+                selectedItemId = $(this).parent().data("path");
+
+                $("#context-menu").css({
+                    top: event.pageY + "px",
+                    left: event.pageX + "px"
+                }).show();
+            });
+
+            $(document).on("click", function() {
+                $("#context-menu").hide();
+            });
+
+            $("#delete-item").on("click", function() {
+                $.post("/delete/" + selectedItemId, function(response) {
+                    if (response.success) {
+                        $("div[data-id='" + selectedItemId + "']").remove();
+                    }
+                });
+            });
+
+            $("#update-item").on("click", function() {
+                let newName = prompt("Yeni adı girin:");
+                if (newName) {
+                    $.ajax({
+                        url: "/update/" + selectedItemId,
+                        type: "POST",
+                        contentType: "application/json",
+                        data: JSON.stringify({ name: newName }),
+                        success: function(response) {
+                            $("div[data-id='" + selectedItemId + "'] span:first").text(newName);
+                        }
+                    });
+                }
+            });
+        });
+
+        $("#create-folder").on("click", function() {
+                let folderName = prompt("Yeni klasör adı:");
+
+                if (folderName) {
+                    $.ajax({
+                        url: "/create_folder/" + $(this).data("path"),
+                        type: "POST",
+                        contentType: "application/json",
+                        data: JSON.stringify({ name: folderName }),
+                        success: function(response) {
+                            if (response.success) {
+                                $("#filesystem").append(`<div class="item" data-id="${response.folder.id}" data-type="folder">
+                                    <span class="folder">${response.folder.name}</span>
+                                    <span class="options">⋮</span>
+                                </div>`);
+                            }
+                        }
+                    });
+                }
+            });
+    </script>
+
+    {% endif %}
+
+
+{% endblock %}

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Raspi Drive{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    {% block head %}
+    <!-- Additional head content goes here -->
+
+    {% endblock %}
+
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('home') }}">Home</a></li>
+                <li><a href="{{ url_for('my_drive') }}">My Drive</a></li>
+                <li><a href="{{ url_for('home') }}">Starred</a></li>
+                <li><a href="{{ url_for('home') }}">Shared with me</a></li>
+                <li><a href="{{ url_for('home') }}">Recent</a></li>
+                <li><a href="{{ url_for('settings') }}">Settings</a></li>
+                <li><a href="{{ url_for('logout') }}">Logout</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        {% block content %}
+        <!-- Main content goes here -->
+        {% endblock %}
+    </main>
+    <footer>
+        <p>&copy; 2023 Raspi Drive</p>
+    </footer>
+
+</body>
+</html>

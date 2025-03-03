@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='login_style.css') }}">
+    <title>Login</title>
+</head>
+<body>
+    <div class="container">
+        <h2>Login</h2>
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+        {% if error %}
+        <div class="message">{{ message }}</div>
+        {% endif %}
+        
+        <form method="POST" action="/login">
+            <div class="form-group">
+                <label for="username">Username:</label><br>
+                <input type="text" id="username" name="username" required><br><br>
+                <label for="password">Password:</label><br>
+                <input type="password" id="password" name="password" required><br><br>
+                <input type="submit" value="Login">
+            </div>
+        </form>
+
+        <div style="margin: 10px;">
+            or
+        </div>
+
+        <div >
+            <a href="/create-account">
+                <button id="create_account_div" >Create Account</button>
+            </a>
+        </div>
+    </div>
+
+   
+</body>
+</html>
