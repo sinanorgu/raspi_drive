@@ -2,8 +2,8 @@ from flask import Flask, flash, render_template, request, redirect, url_for, ses
 import sqlite3
 import os
 import user_functions
-
-
+import file_functions
+from file_functions import MAGIC_STRING
 
 
 if not os.path.exists('media'):
@@ -12,10 +12,11 @@ if not os.path.exists('media'):
 conn = sqlite3.connect('database.db')
 cursor = conn.cursor()
 cursor.execute('CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY AUTOINCREMENT,username varchar(20), password varchar(70), storage_limit INTEGER default 500)')
-cursor.execute('CREATE TABLE IF NOT EXISTS files (file_id INTEGER PRIMARY KEY AUTOINCREMENT, file_name varchar(70),title varchar(100), file_size INTEGER, user_id INTEGER, FOREIGN KEY(user_id) REFERENCES users(user_id))')
+cursor.execute('CREATE TABLE IF NOT EXISTS files (file_id INTEGER PRIMARY KEY AUTOINCREMENT, file_name varchar(70),title varchar(100), file_size INTEGER, user_id INTEGER, FOREIGN KEY(user_id) REFERENCES users(user_id) on delete set null)')
 cursor.execute('CREATE TABLE IF NOT EXISTS folders (folder_id INTEGER PRIMARY KEY AUTOINCREMENT, folder_name varchar(50), user_id INTEGER, FOREIGN KEY(user_id) REFERENCES users(user_id))')
-cursor.execute('CREATE TABLE IF NOT EXISTS shared_files (shared_id INTEGER PRIMARY KEY AUTOINCREMENT, file_id INTEGER, user_id INTEGER, FOREIGN KEY(file_id) REFERENCES files(file_id), FOREIGN KEY(user_id) REFERENCES users(user_id))')
-cursor.execute('CREATE TABLE IF NOT EXISTS shared_folders (folder_id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, permissions varchar(5), FOREIGN KEY(user_id) REFERENCES users(user_id))')
+cursor.execute('CREATE TABLE IF NOT EXISTS shared_files (shared_id INTEGER PRIMARY KEY AUTOINCREMENT, file_id INTEGER, user_id INTEGER, FOREIGN KEY(file_id) REFERENCES files(file_id) ON DELETE CASCADE, FOREIGN KEY(user_id) REFERENCES users(user_id) on delete set null)')
+cursor.execute('CREATE TABLE IF NOT EXISTS shared_folders (shared_id INTEGER PRIMARY KEY AUTOINCREMENT,folder_id INTEGER, user_id INTEGER, permissions varchar(5), FOREIGN KEY(user_id) REFERENCES users(user_id) on delete set null,  FOREIGN KEY(folder_id) REFERENCES folders(folder_id) on delete CASCADE) ')
+
 #permissions: "rud" read upload delete 
 #if someone has "ru" permission read + upload but can't delete the file
 
@@ -26,14 +27,16 @@ conn.close()
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Güvenli bir oturum anahtarı
-MAGIC_STRING = b"!@#$%^&*()_+"
 
 
 
 @app.route('/')
 def index():
-    return redirect(url_for('login'))
-
+    if 'logged_in' not in session or not session['logged_in']:
+        return redirect(url_for('login'))
+    else:
+        return redirect(url_for('home'))
+    
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -63,9 +66,11 @@ def login():
 
 @app.route('/logout')
 def logout():
+    print(session)
     session.pop('logged_in', None)
     session.pop('username', None)
     session.pop('user_id', None)
+
 
     return redirect(url_for('login'))
 
@@ -99,12 +104,56 @@ def my_drive():
 
 @app.route("/browse_folder/<path:path>", methods=["POST", "GET"])
 def browse_folder(path):
+
+    authorized = {
+        "read": False,
+        "upload": False,
+        "delete": False
+    }
+
+
     if 'logged_in' not in session or not session['logged_in']:
         return redirect(url_for('login'))
     else:
         if session['user_id'] != int(path.split('/')[0]):
-            #return jsonify({"success": False, "message": "You are not authorized to view this folder"})
-            return render_template("my_drive.html", error = "You are not authorized to view this folder")
+            #return jsonify({"success": False, "message": "You are not authorized to view this folder"})        
+        
+            conn = sqlite3.connect('database.db')
+            cursor = conn.cursor()
+            
+            cursor.execute('SELECT * from (SELECT folder_name,permissions,shared_folders.user_id from folders,shared_folders where folders.folder_id = shared_folders.folder_id ) where user_id = ? ',(session['user_id'],))
+        
+            shared_folders = cursor.fetchall()
+            cursor.close()
+            conn.close()
+            #shared_folders = [i[0] for i in shared_folders]
+            print(shared_folders)
+            for i in shared_folders:
+                if path.startswith(i[0]) and 'r' in i[1]:
+                    print("authorized: to read",i)
+                    authorized['read'] = True
+                
+                if path.startswith(i[0]) and 'u' in i[1]:
+                    print("authorized: to upload",i)
+                    authorized['upload'] = True
+                
+                if path.startswith(i[0]) and 'd' in i[1]:
+                    print("authorized: to read",i)
+                    authorized['delete'] = True
+                
+                if (False not in authorized.values()) :
+                    break
+
+            if authorized['read'] == False:
+                return render_template("my_drive.html", error = "You are not authorized to view this folder")
+
+        else: #if the user is the owner of the folder
+            authorized = {
+                "read": True,
+                "upload": True,
+                "delete": True
+            }
+
         actual_path = 'media/' + path
         if not os.path.exists(actual_path):
             return jsonify({"success": False, "message": "Folder not found"})
@@ -131,8 +180,24 @@ def browse_folder(path):
                 continue
             p+= '/' + split_path[i]
             path_list.append({"name": split_path[i], "path": p})
-            
-        return render_template("my_drive.html", item_list=item_list, path_list=path_list,current_folder_path = path)
+        
+
+        cursor = sqlite3.connect('database.db').cursor()
+        cursor.execute('SELECT username FROM users WHERE user_id = ?', (int(path.split('/')[0]),))
+        author_name = cursor.fetchone()[0]
+        author_id = int(path.split('/')[0])
+        cursor.close()
+
+        if session['user_id'] == author_id:
+            author = None
+        else:
+            author = {
+                'name': author_name,
+                'id': author_id
+            }
+        return render_template("my_drive.html", item_list=item_list, path_list=path_list,
+                               current_folder_path = path,author = author,authorized = authorized)
+
 
 
 @app.route("/browse_file<path:path>", methods=["POST", "GET"])
@@ -140,36 +205,61 @@ def browse_file(path):
     if 'logged_in' not in session or not session['logged_in']:
         return redirect(url_for('login'))
     else:
-        if not os.path.isfile('media/' + path):
-            return jsonify({"success": False, "message": "File not found"})
+        return file_functions.browse_file(path)
+    
         
-        with open('media/' + path, "rb") as f:
-            file_data = f.read()
-
-        if file_data.startswith(MAGIC_STRING):
-            file_data = file_data[len(MAGIC_STRING):]  # Başındaki özel karakterleri kaldır
-        else:
-            return "kanka bu iste bi is var ya dosya sifreli degil gonderemem kb"
-
-        import io
-        decrypted_file_io = io.BytesIO(file_data)
-        decrypted_file_io.seek(0)
-
-
-        
-        return send_file(decrypted_file_io, as_attachment=True, download_name=path.split('/')[-1])
-        #return send_file('media/'+ path, as_attachment=True, mimetype="application/octet-stream")
-        #return send_from_directory('media/', path)
 
 
 @app.route("/create_folder/<path:path>", methods=["POST"])
 def create_folder(path):
+    if "logged_in" not in session or not session["logged_in"]:
+        return redirect(url_for("login"))
+    
+    if path.split('/')[0] != str(session['user_id']):
+        conn = sqlite3.connect('database.db')
+        cursor = conn.cursor()
+        #cursor.execute('SELECT folder_name,permissions from folders,shared_folders where folders.folder_id = shared_folders.folder_id and folders.folder_id =  (select folder_id from shared_folders WHERE user_id = ? )',(session['user_id'],))
+        cursor.execute('SELECT * from (SELECT folder_name,permissions,shared_folders.user_id from folders,shared_folders where folders.folder_id = shared_folders.folder_id ) where user_id = ? ',(session['user_id'],))
+        
+        shared_folders = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        #shared_folders = [i[0] for i in shared_folders]
+        print(shared_folders)
+        authorized = False
+        for i in shared_folders:
+            if path.startswith(i[0]) and 'u' in i[1]:
+                print("authorized:",i)
+                authorized = True
+                break
+        if not authorized:
+            print("not authorized to create folder")
+            return jsonify({"error": "You are not authorized to create a folder to this folder"}), 403
+
+    
+    
+    print("create folder is running")
     folder_name = request.json.get("name")
+    print(folder_name)
     folder_name = folder_name.replace(' ', '_')
+    
     if user_functions.is_valid_filename(folder_name):
+        print("valid folder name",folder_name)
         os.mkdir('media/' + path + '/' + folder_name)
+        conn = sqlite3.connect('database.db')
+        cursor = conn.cursor()
+        cursor.execute('INSERT INTO folders (folder_name, user_id) VALUES (?, ?)', (path + '/' + folder_name, session['user_id']))
+        conn.commit()
+        cursor.execute("INSERT INTO shared_folders (folder_id,user_id, permissions) VALUES (?,?,?)", (cursor.lastrowid, session['user_id'], "rud"))
+        conn.commit()
+
+        cursor.close()
+        conn.close()
     else:
+        print("invalid folder name",folder_name)
         return jsonify({"success": False, "message": "Invalid folder name"})
+
+
 
     return jsonify({"success": True, "message": "Folder created"})
 
@@ -212,22 +302,8 @@ def upload_file(path):
 def upload_file(path):
     if "logged_in" not in session or not session["logged_in"]:
         return redirect(url_for("login"))
-    if request.method == "POST":
-        files = request.files.getlist('file')  # Tüm dosyaları al
-        print(files)
-
-
-        for file in files:
-            if file.filename == '':
-                return jsonify({"error": "No selected file"}), 400
-
-            file_path = 'media/' + path + '/' + file.filename
-            file_data = file.read()
-            with open(file_path, "wb") as f:
-                f.write(MAGIC_STRING + file_data)
-
-        return jsonify({"message": "File stored securely"}), 200
-    
+    else:
+        return file_functions.upload_file(path,request)
 
 
 def __main__():

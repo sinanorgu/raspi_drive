@@ -63,4 +63,12 @@ def is_valid_filename(filename):
     
     if any(char in filename for char in invalid_chars):
         return False
-    
+    return True
+
+
+def get_used_storage(user_id):
+    storage = 0
+    for root, dirs, files in os.walk('media/' + str(user_id)):
+        for file in files:
+            storage += os.path.getsize(os.path.join(root, file))
+    return storage

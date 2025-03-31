@@ -75,20 +75,39 @@
 {% block content %}
 
     {% if error %}
-        <p>{{ error }}</p>
+        <p style="color: red;">{{ error }}</p>
     {% else %}
 
+
+    {% if author %}
+    <h1>{{author.name}}'s Drive</h1>
+    {% else %}
     <h1>My Drive</h1>
+    {% endif %}
+
+    <p>You are authorized to <b>{{'read' if authorized['read'] else ''}}</b>
+        
+        <b>{{'upload' if authorized['upload'] else ''}}</b>
+    <b>{{'delete' if authorized['delete'] else ''}}</b>
+        for this folder.
+    </p>
 
     <div id="item-list">
 
         <button id="back-button" >⬅ Üst Klasör</button>
         <div id = "path">
 
-        <a href="/my_drive">My Drive</a> 
-        {% for p in path_list %}
-        <a href="{{ url_for('browse_folder',path = p.path) }}">/ {{ p.name }}</a> 
-        {% endfor %}
+        
+            {% if author %}
+            <a href="/browse_folder/{{author.id}}">{{author.name}}'s Drive</a> 
+            {% else %}
+            <a href="/my_drive">My Drive</a> 
+            {% endif %}
+
+
+            {% for p in path_list %}
+            <a href="{{ url_for('browse_folder',path = p.path) }}">/ {{ p.name }}</a> 
+            {% endfor %}
         
         </div>
 
@@ -96,15 +115,14 @@
         <br>
         
 
-
+        {% if authorized['upload'] %}
         <button id="create-folder" data-path="{{current_folder_path}}">Klasör Oluştur</button>
-
-
         <form action="{{url_for('upload_file',path = current_folder_path)}}"  enctype="multipart/form-data"  method="post">
             <input type="file" name="file" id="file"  multiple>
             <input type="submit" value="Dosya Yükle">
 
         </form>
+        {% endif %}
 
 
         {% for item in item_list %}
