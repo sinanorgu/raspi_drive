@@ -42,14 +42,26 @@ def add_account_waiting_for_confirmation(username,email,password,token):
 def add_account_to_database(username,email,password_sha):
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
-    cursor.execute('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', (username, email, password_sha))
-    conn.commit()
-    
-    cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
-    id = cursor.fetchone()[0]
-    os.mkdir('media/' + str(id))
 
-    conn.close()
+    try:
+        cursor.execute('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', (username, email, password_sha))
+        conn.commit()
+        cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
+        id = cursor.fetchone()[0]
+        os.mkdir('media/' + str(id))
+        conn.close()
+        return True
+
+    except sqlite3.IntegrityError as e:
+        # Eğer UNIQUE kısıtlaması ihlali olursa
+        print(f"Hata: {e}. Email zaten mevcut!")
+        conn.close()
+
+        return False
+
+    
+
+    
 
 
 my_track_incorrect_login = track_incorrect_login()
@@ -64,9 +76,15 @@ def create_user(request ):
     
     if request.method == 'POST':
         username = request.form['username']
+        username = username.strip().lower()
         password1 = request.form['password1']
         password2 = request.form['password2']
         email = request.form['email']
+        email = email.strip().lower()   
+        local, domain = email.split("@")
+        if "+" in local:
+            local = local.split("+")[0]  # "+" işaretinden öncesini al
+        email = f"{local}@{domain}"
 
         
 
@@ -180,7 +198,9 @@ def check_token(token):
         email = value['email']
         password_sha = value['password_sha']
         # Add the account to the database
-        add_account_to_database(username,email,password_sha)
+        is_success = add_account_to_database(username,email,password_sha)
+        if not is_success:
+            return "This email is already registered"
         #os.mkdir('media/' + str(id))
         # Remove the account from the waiting list
         del accounts_waiting_for_confirmation[token]

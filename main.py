@@ -11,7 +11,7 @@ if not os.path.exists('media'):
 #sqlite3.connect('database.db') # Veritabanı dosyasını oluştur
 conn = sqlite3.connect('database.db')
 cursor = conn.cursor()
-cursor.execute('CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY AUTOINCREMENT,username varchar(20), password varchar(70), storage_limit INTEGER default 500 , email varchar(50), is_admin BOOLEAN default 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
+cursor.execute('CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY AUTOINCREMENT, username varchar(20) , password varchar(70), storage_limit INTEGER default 500 , email varchar(50) UNIQUE, is_admin BOOLEAN default 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
 cursor.execute('CREATE TABLE IF NOT EXISTS files (file_id INTEGER PRIMARY KEY AUTOINCREMENT, file_name varchar(70),title varchar(100), file_size INTEGER, user_id INTEGER, FOREIGN KEY(user_id) REFERENCES users(user_id) on delete set null)')
 cursor.execute('CREATE TABLE IF NOT EXISTS folders (folder_id INTEGER PRIMARY KEY AUTOINCREMENT, folder_name varchar(50), user_id INTEGER, FOREIGN KEY(user_id) REFERENCES users(user_id))')
 cursor.execute('CREATE TABLE IF NOT EXISTS shared_files (shared_id INTEGER PRIMARY KEY AUTOINCREMENT, file_id INTEGER, user_id INTEGER, FOREIGN KEY(file_id) REFERENCES files(file_id) ON DELETE CASCADE, FOREIGN KEY(user_id) REFERENCES users(user_id) on delete set null)')
