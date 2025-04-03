@@ -1,0 +1,8 @@
+media/
+__pycache__/
+
+database.db
+templates/deneme.html
+secret_info.py
+.DS_Store
+secret_info.py
