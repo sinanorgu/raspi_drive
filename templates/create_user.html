@@ -19,12 +19,17 @@
         <form method="POST" action="/create-account">
             <div class="form-group">
                 <label for="username">Username:</label><br>
-                <input type="text" id="username" name="username" required><br><br>
+                <input type="text" id="username" name="username" minlength="5" required><br><br>
+                
                 <label for="password1">Password:</label><br>
-                <input type="password" id="password1" name="password1" required><br><br>
+                <input type="password" id="password1" name="password1" minlength="8" required><br><br>
                 
                 <label for="password2">Confirm Password:</label><br>
-                <input type="password" id="password2" name="password2" required><br><br>
+                <input type="password" id="password2" name="password2" minlength="8" required><br><br>
+
+                <label for="email">Email:</label><br>
+                <input type="text" id="email" name="email" minlength="8" required><br><br>
+
                 
                 <input type="submit" value="create account">
             </div>

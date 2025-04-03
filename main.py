@@ -11,7 +11,7 @@ if not os.path.exists('media'):
 #sqlite3.connect('database.db') # Veritabanı dosyasını oluştur
 conn = sqlite3.connect('database.db')
 cursor = conn.cursor()
-cursor.execute('CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY AUTOINCREMENT,username varchar(20), password varchar(70), storage_limit INTEGER default 500)')
+cursor.execute('CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY AUTOINCREMENT,username varchar(20), password varchar(70), storage_limit INTEGER default 500 , email varchar(50), is_admin BOOLEAN default 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
 cursor.execute('CREATE TABLE IF NOT EXISTS files (file_id INTEGER PRIMARY KEY AUTOINCREMENT, file_name varchar(70),title varchar(100), file_size INTEGER, user_id INTEGER, FOREIGN KEY(user_id) REFERENCES users(user_id) on delete set null)')
 cursor.execute('CREATE TABLE IF NOT EXISTS folders (folder_id INTEGER PRIMARY KEY AUTOINCREMENT, folder_name varchar(50), user_id INTEGER, FOREIGN KEY(user_id) REFERENCES users(user_id))')
 cursor.execute('CREATE TABLE IF NOT EXISTS shared_files (shared_id INTEGER PRIMARY KEY AUTOINCREMENT, file_id INTEGER, user_id INTEGER, FOREIGN KEY(file_id) REFERENCES files(file_id) ON DELETE CASCADE, FOREIGN KEY(user_id) REFERENCES users(user_id) on delete set null)')
@@ -41,28 +41,19 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        username = username.lower()
-
-        conn = sqlite3.connect('database.db')
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM users WHERE username = ? AND password = ?', (username, user_functions.string_to_sha256(password)))
-        user = cursor.fetchone()
-        conn.close()
-
-        if user is not None:
-            session['logged_in'] = True
-            session['username'] = user[1] 
-            session['user_id'] = user[0]
-
-            session.permanent = False
-            return redirect(url_for('home'))
-        else:
-            return render_template('login.html', error="Invalid Username or Password")
+        return user_functions.login(request)
 
     return render_template('login.html')
 
+
+
+@app.route('/confirm_email/<token>', methods=['GET', 'POST'])
+def confirm_email(token):
+    if user_functions.check_token(token) == True:
+        return render_template('login.html', message="Your account is confirmed. You can login now")
+    else:
+        return render_template('login.html', error="Your token is invalid or expired. Please try again later")
+    
 
 @app.route('/logout')
 def logout():
@@ -92,7 +83,11 @@ def settings():
     if 'logged_in' not in session or not session['logged_in']:
         return redirect(url_for('login'))
     else:
-        return render_template('settings.html',username = session['username'])    
+        return render_template('settings.html',username = session['username'],
+                               storage_size = user_functions.find_appropriate_file_size(session['storage_limit']*1000*1000),
+                               used_storage = user_functions.find_appropriate_file_size(session['used_storage']),
+                               usage_proportion = str(round((session['used_storage']*100)/(session['storage_limit']*1000*1000),2)) + "%",
+                               email = session['email']  )    
 
 
 @app.route('/my_drive', methods=['GET', 'POST'])
