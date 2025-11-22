@@ -6,68 +6,531 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <style>
+    :root {
+        --card-bg: #f8fafc;
+        --border-color: #e2e8f0;
+        --text-muted: #64748b;
+        --primary: #2563eb;
+        --primary-dark: #1d4ed8;
+        --success: #16a34a;
+        --warning: #f97316;
+        --danger: #dc2626;
+    }
+    .drive-wrapper {
+        background: #fff;
+        padding: 24px;
+        border-radius: 14px;
+        box-shadow: 0 15px 50px rgba(15, 23, 42, 0.08);
+    }
+    .drive-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .drive-title h1 {
+        margin: 0;
+        font-size: 26px;
+        color: #0f172a;
+    }
+    .drive-title p {
+        margin: 4px 0 0;
+        color: var(--text-muted);
+        font-size: 14px;
+    }
+    .permission-badges {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+    }
+    .permission-badge {
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: bold;
+        color: #fff;
+    }
+    .permission-badge.read { background: var(--primary); }
+    .permission-badge.upload { background: var(--success); }
+    .permission-badge.delete { background: var(--danger); }
+    .header-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
     #back-button {
-            display: inline-block;
-            padding: 10px 15px;
-            background: #007bff;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            cursor: pointer;
-            border: none;
-        }
-
-        #back-button:hover {
-            background: #0056b3;
-        }
+        padding: 10px 18px;
+        border-radius: 999px;
+        border: 1px solid var(--border-color);
+        background: #fff;
+        cursor: pointer;
+        font-weight: bold;
+        color: #0f172a;
+        transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+    #back-button:hover {
+        background: #f1f5f9;
+        box-shadow: 0 5px 15px rgba(15, 23, 42, 0.08);
+    }
+    .drive-breadcrumb {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 12px 16px;
+        border-radius: 8px;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        font-size: 14px;
+        margin-bottom: 24px;
+    }
+    .drive-breadcrumb a {
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 600;
+    }
+    .drive-breadcrumb span {
+        color: var(--text-muted);
+    }
+    .drive-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+    .btn {
+        border: none;
+        padding: 10px 18px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: transform 0.1s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+    .btn.primary {
+        background: var(--primary);
+        color: #fff;
+        box-shadow: 0 10px 25px rgba(37, 99, 235, 0.25);
+    }
+    .btn.primary:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+    }
+    .btn.secondary {
+        background: #e0e7ff;
+        color: #1e1b4b;
+    }
+    .btn.tertiary {
+        background: #f1f5f9;
+        color: #0f172a;
+        border: 1px solid var(--border-color);
+    }
+    .upload-form {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .upload-input {
+        border: 1px dashed var(--border-color);
+        border-radius: 8px;
+        padding: 9px 14px;
+        background: #fff;
+    }
+    .drive-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .drive-item {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 12px 16px;
+        display: flex;
+        gap: 16px;
+        transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+    .drive-item:hover {
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+        transform: translateY(-2px);
+        border-color: var(--primary);
+    }
+    .drive-item.has-preview {
+        padding: 12px;
+    }
+    .folder-card {
+        background: #eef2ff;
+        border-color: #c7d2fe;
+    }
+    .folder-card:hover {
+        border-color: #818cf8;
+    }
+    .file-card {
+        background: #fdf2f8;
+        border-color: #fbcfe8;
+    }
+    .file-card:hover {
+        border-color: #f472b6;
+    }
+    .item-preview {
+        width: 90px;
+        height: 70px;
+        border-radius: 8px;
+        background-size: cover;
+        background-position: center;
+        background-color: #fff;
+        flex-shrink: 0;
+        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.1);
+    }
+    .drive-item.has-preview .item-preview {
+        border: 1px solid rgba(15, 23, 42, 0.08);
+    }
+    .item-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+    }
+    .item-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        flex: 1;
+    }
+    .item-icon {
+        font-size: 28px;
+        margin-right: 4px;
+    }
+    .item-main {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        color: #0f172a;
+    }
+    .item-name {
+        display: block;
+        max-width: 180px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .file_size {
+        color: var(--text-muted);
+        font-size: 12px;
+    }
+    .item-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+    }
+    .options {
+        cursor: pointer;
+        font-size: 22px;
+        color: var(--text-muted);
+        padding: 6px 10px;
+        border-radius: 6px;
+    }
+    .options:hover {
+        background: rgba(15, 23, 42, 0.08);
+        color: #0f172a;
+    }
     .menu {
         display: none;
         position: absolute;
-        background: white;
-        border: 1px solid #ccc;
-        padding: 5px;
-        box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2);
+        background: #fff;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 6px 0;
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
+        min-width: 160px;
+        z-index: 10;
     }
-
     .menu a {
         display: block;
-        padding: 5px;
+        padding: 8px 16px;
         text-decoration: none;
-        color: black;
+        color: #0f172a;
+        font-size: 14px;
     }
-
     .menu a:hover {
-        background: #f0f0f0;
+        background: #f1f5f9;
     }
-
-    .item {
+    .menu a.disabled {
+        color: #94a3b8;
+        pointer-events: none;
+    }
+    .empty-drive {
+        text-align: center;
+        padding: 60px 0;
+        color: var(--text-muted);
+        border: 2px dashed var(--border-color);
+        border-radius: 12px;
+        margin-top: 20px;
+    }
+    .upload-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.6);
         display: flex;
-        justify-content: space-between;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+    }
+    .upload-overlay.active {
+        opacity: 1;
+        pointer-events: all;
+    }
+    .upload-modal {
+        background: #fff;
+        padding: 24px;
+        border-radius: 14px;
+        width: min(360px, 90%);
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.3);
+    }
+    .spinner {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: 4px solid #e2e8f0;
+        border-top-color: var(--primary);
+        margin: 0 auto 16px;
+        animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+    .progress-bar {
+        margin-top: 16px;
+        height: 8px;
+        background: #e2e8f0;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+    .progress-fill {
+        height: 100%;
+        width: 0%;
+        background: var(--primary);
+        transition: width 0.2s ease;
+    }
+    .upload-toast {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: var(--success);
+        color: #fff;
+        padding: 12px 18px;
+        border-radius: 12px;
+        font-weight: 600;
+        box-shadow: 0 10px 30px rgba(22, 163, 74, 0.4);
+        opacity: 0;
+        transform: translateY(10px);
+        pointer-events: none;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+        z-index: 2100;
+    }
+    .upload-toast.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    .share-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+        z-index: 2200;
+    }
+    .share-modal.open {
+        opacity: 1;
+        pointer-events: all;
+    }
+    .share-modal-content {
+        background: #fff;
+        padding: 24px;
+        border-radius: 16px;
+        width: min(420px, 90%);
+        box-shadow: 0 30px 80px rgba(15, 23, 42, 0.25);
+    }
+    .share-modal-content h3 {
+        margin: 0 0 12px;
+        color: #0f172a;
+    }
+    .share-modal-content p {
+        margin: 0 0 20px;
+        color: var(--text-muted);
+    }
+    .share-modal label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 6px;
+    }
+    .share-modal select {
+        width: 100%;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
         padding: 10px;
-        border-bottom: 1px solid #ddd;
+        background: #f8fafc;
+        margin-bottom: 16px;
     }
-
-    .options {
+    .permission-options {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+    }
+    .permission-options label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 500;
+    }
+    .share-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+    .share-btn {
+        border: none;
+        padding: 10px 18px;
+        border-radius: 8px;
+        font-weight: 600;
         cursor: pointer;
-        font-size: 18px;
     }
-    #item-list {
-        width: relative;
+    .share-btn.secondary {
+        background: #e2e8f0;
+        color: #0f172a;
     }
-    .folder_file_link{
-        text-decoration: none;
-        color: black;
+    .share-btn.primary {
+        background: var(--primary);
+        color: #fff;
     }
-    .folder_file_link:hover{
-        text-decoration: none; /* Tüm durumlarda altı çizgiyi engelle */
-        color: inherit; 
+    .share-info-card {
+        margin-top: 20px;
+        padding: 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        background: #f8fafc;
     }
-    .file_size{
-        margin-left: 10px;
-        opacity: 0.2;
+    .share-info-header {
+        margin-bottom: 12px;
     }
-
-   
+    .share-info-header h3 {
+        margin: 0;
+        color: #0f172a;
+    }
+    .share-info-header p {
+        margin: 4px 0 0;
+        color: var(--text-muted);
+        font-size: 14px;
+    }
+    .share-edit-form {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 0;
+        border-top: 1px solid var(--border-color);
+    }
+    .share-edit-form:first-of-type {
+        border-top: none;
+        padding-top: 0;
+    }
+    .share-user-info {
+        flex: 1;
+        min-width: 180px;
+    }
+    .share-user-info strong {
+        display: block;
+        font-size: 16px;
+        color: #0f172a;
+    }
+    .share-user-info span {
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+    .share-edit-perms {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    .share-edit-perms label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 500;
+    }
+    .inherited-share-section {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border-color);
+    }
+    .inherited-share-card {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.4);
+    }
+    .inherited-share-card:last-child {
+        border-bottom: none;
+    }
+    .inherited-share-card strong {
+        color: #0f172a;
+    }
+    .inherited-share-source {
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+    .permission-chips {
+        display: flex;
+        gap: 8px;
+    }
+    .permission-chip {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: #e2e8f0;
+        font-size: 12px;
+        color: #0f172a;
+    }
+    @media (max-width: 600px) {
+        .drive-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .drive-grid {
+            grid-template-columns: 1fr;
+        }
+        .drive-toolbar,
+        .upload-form {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        #back-button {
+            width: 100%;
+            text-align: center;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -79,123 +542,349 @@
     {% else %}
 
 
-    {% if author %}
-    <h1>{{author.name}}'s Drive</h1>
-    {% else %}
-    <h1>My Drive</h1>
-    {% endif %}
-
-    <p>You are authorized to <b>{{'read' if authorized['read'] else ''}}</b>
-        
-        <b>{{'upload' if authorized['upload'] else ''}}</b>
-    <b>{{'delete' if authorized['delete'] else ''}}</b>
-        for this folder.
-    </p>
-
-    <div id="item-list">
-
-        <button id="back-button" >⬅ Üst Klasör</button>
-        <div id = "path">
-
-        
-            {% if author %}
-            <a href="/browse_folder/{{author.id}}">{{author.name}}'s Drive</a> 
-            {% else %}
-            <a href="/my_drive">My Drive</a> 
-            {% endif %}
-
-
-            {% for p in path_list %}
-            <a href="{{ url_for('browse_folder',path = p.path) }}">/ {{ p.name }}</a> 
-            {% endfor %}
-        
+    <div class="drive-wrapper">
+        <div class="drive-header">
+            <div class="drive-title">
+                {% if author %}
+                <h1>{{author.name}}'s Drive</h1>
+                <p>{{author.name}} tarafından paylaşılan klasörü görüntülüyorsun.</p>
+                {% else %}
+                <h1>My Drive</h1>
+                <p>Tüm dosyaların ve klasörlerin tek yerde.</p>
+                {% endif %}
+                <div class="permission-badges">
+                    {% if authorized['read'] %}
+                    <span class="permission-badge read">Oku</span>
+                    {% endif %}
+                    {% if authorized['upload'] %}
+                    <span class="permission-badge upload">Yükle</span>
+                    {% endif %}
+                    {% if authorized['delete'] %}
+                    <span class="permission-badge delete">Sil</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="header-actions">
+                {% set parent_info = current_folder_path.rsplit('/', 1) %}
+                {% if parent_info|length > 1 %}
+                    {% set parent_path = parent_info[0] %}
+                {% else %}
+                    {% set parent_path = '' %}
+                {% endif %}
+                <button id="back-button" data-parent="{{ parent_path }}">⬅ Üst Klasör</button>
+            </div>
         </div>
 
-        <br>
-        <br>
-        
+        <nav class="drive-breadcrumb">
+            {% if author %}
+            <a href="{{ url_for('browse_folder', path=author.id) }}">{{author.name}}'s Drive</a>
+            {% else %}
+            <a href="{{ url_for('my_drive') }}">My Drive</a>
+            {% endif %}
+            {% for p in path_list %}
+            <span>/</span>
+            {% if loop.last %}
+            <span>{{ p.name }}</span>
+            {% else %}
+            <a href="{{ url_for('browse_folder', path=p.path) }}">{{ p.name }}</a>
+            {% endif %}
+            {% endfor %}
+        </nav>
 
         {% if authorized['upload'] %}
-        <button id="create-folder" data-path="{{current_folder_path}}">Klasör Oluştur</button>
-        <form action="{{url_for('upload_file',path = current_folder_path)}}"  enctype="multipart/form-data"  method="post">
-            <input type="file" name="file" id="file"  multiple>
-            <input type="submit" value="Dosya Yükle">
-
-        </form>
+        <div class="drive-toolbar">
+            <button id="create-folder" data-path="{{current_folder_path}}" class="btn primary">+ Klasör Oluştur</button>
+            <form action="{{url_for('upload_file',path = current_folder_path)}}"  enctype="multipart/form-data"  method="post" class="upload-form" id="upload-form">
+                <input type="file" name="file" id="file" class="upload-input" multiple>
+                <button type="submit" class="btn secondary">Dosya Yükle</button>
+            </form>
+        </div>
         {% endif %}
 
-
-        {% for item in item_list %}
-        <div class="item" data-path="{{ item.path }}" data-type="{{ item.is_file }}">
-
-                {% if item.is_file %}
-                <a href="{{url_for('browse_file',path = item.path)}}" class="folder_file_link" target="_blank">
-                    <span>📄 {{ item.name }}</span>
-                </a>
-                {% else %}
-                    <a href="{{url_for('browse_folder',path = item.path)}}" class="folder_file_link" >
-                        <span>📁 {{ item.name }}</span>
-                    </a>
-                {% endif %}
-                <span class = "file_size" >{{ item.file_size }}</span>
-                <span class="options">⋮</span>
-
-
-                
+        {% if can_share and (share_info or inherited_share_info) %}
+        <div class="share-info-card">
+            <div class="share-info-header share-toggle" id="share-toggle">
+                <h3>📤 Bu klasör paylaşıldı</h3>
+                <p>Paylaşımı görüntülemek ve düzenlemek için tıklayın.</p>
+            </div>
+            <div id="share-details" style="display: none;">
+            {% for share in share_info %}
+            <form class="share-edit-form" data-user-id="{{ share.user_id }}" data-folder="{{ current_folder_path }}">
+                <div class="share-user-info">
+                    <strong>{{ share.username }}</strong>
+                    <span>Kullanıcı ID: {{ share.user_id }}</span>
+                </div>
+                <div class="share-edit-perms">
+                    <label><input type="checkbox" class="share-edit-permission" value="r" {% if 'r' in share.permissions %}checked{% endif %}> Oku</label>
+                    <label><input type="checkbox" class="share-edit-permission" value="u" {% if 'u' in share.permissions %}checked{% endif %}> Yükle</label>
+                    <label><input type="checkbox" class="share-edit-permission" value="d" {% if 'd' in share.permissions %}checked{% endif %}> Sil</label>
+                </div>
+                <button type="submit" class="btn tertiary">Kaydet</button>
+                <button type="button" class="btn secondary share-remove">Paylaşmaktan Vazgeç</button>
+            </form>
+            {% endfor %}
+            {% if inherited_share_info %}
+            <div class="inherited-share-section">
+                <h4>Üst klasör paylaşımları</h4>
+                <p class="inherited-share-source">Bu kullanıcılar üst klasörlerden aldıkları yetki sayesinde bu klasöre erişebilir.</p>
+                {% for inherited in inherited_share_info %}
+                <div class="inherited-share-card">
+                    <strong>{{ inherited.username }}</strong>
+                    <div class="permission-chips">
+                        {% if 'r' in inherited.permissions %}
+                        <span class="permission-chip">Oku</span>
+                        {% endif %}
+                        {% if 'u' in inherited.permissions %}
+                        <span class="permission-chip">Yükle</span>
+                        {% endif %}
+                        {% if 'd' in inherited.permissions %}
+                        <span class="permission-chip">Sil</span>
+                        {% endif %}
+                    </div>
+                    <span class="inherited-share-source">
+                        <a href="{{ url_for('browse_folder', path=inherited.source_folder) }}">
+                            {{ inherited.source_folder }}
+                        </a> klasöründen miras alındı
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            </div>
         </div>
-        {% endfor %}
+        {% endif %}
+
+        {% if item_list %}
+        <div id="item-list" class="drive-grid">
+            {% for item in item_list %}
+            {% if item.is_file %}
+                {% set item_href = url_for('browse_file', path=item.path) %}
+                {% set item_target = '_blank' %}
+                {% set item_class = 'file-card' %}
+                {% set item_icon = '📄' %}
+            {% else %}
+                {% set item_href = url_for('browse_folder', path=item.path) %}
+                {% set item_target = '_self' %}
+                {% set item_class = 'folder-card' %}
+                {% set item_icon = '📁' %}
+            {% endif %}
+            <div class="drive-item {{ item_class }} {{ 'has-preview' if item.is_image and item.is_file else '' }}" data-path="{{ item.path }}" data-kind="{{ 'file' if item.is_file else 'folder' }}" data-href="{{ item_href }}" data-target="{{ item_target }}" data-label="{{ item.name }}">
+                {% if item.is_image and item.is_file %}
+                <div class="item-preview" style="background-image: url('{{ url_for('preview_file', path=item.path) }}');"></div>
+                {% endif %}
+                <div class="item-content">
+                    <div class="item-meta" title="{{ item.name }}">
+                        <div class="item-main" title="{{ item.name }}">
+                            {% if not (item.is_image and item.is_file) %}
+                            <span class="item-icon">{{ item_icon }}</span>
+                            {% endif %}
+                            <span class="item-name">{{ item.name }}</span>
+                        </div>
+                        <span class="file_size">{{ item.file_size }}</span>
+                    </div>
+                    <div class="item-actions">
+                        <span class="options">⋮</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-drive">
+            Bu klasörde henüz içerik yok. Dosya yükleyebilir veya yeni bir klasör oluşturabilirsin.
+        </div>
+        {% endif %}
     </div>
 
     <div class="menu" id="context-menu">
-        <a href="#" id="update-item">Güncelle</a>
+        <a href="#" id="update-item">Yeniden Adlandır</a>
         <a href="#" id="delete-item">Sil</a>
+        <a href="#" id="share-item">Paylaş</a>
+    </div>
+    <div id="upload-overlay" class="upload-overlay">
+        <div class="upload-modal">
+            <div class="spinner"></div>
+            <p>Dosyalar yükleniyor...</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="upload-progress"></div>
+            </div>
+        </div>
+    </div>
+    <div id="upload-toast" class="upload-toast">Dosya başarıyla yüklendi!</div>
+    <div id="share-modal" class="share-modal">
+        <div class="share-modal-content">
+            <h3>Klasörü Paylaş</h3>
+            <p id="share-folder-name">Seçilen klasör</p>
+            {% if shareable_users %}
+            <form id="share-form">
+                <label for="share-user-select">Kullanıcı Seç</label>
+                <select id="share-user-select" required>
+                    {% for user in shareable_users %}
+                    <option value="{{ user.id }}">{{ user.name }}</option>
+                    {% endfor %}
+                </select>
+                <label>İzinler</label>
+                <div class="permission-options">
+                    <label><input type="checkbox" class="share-permission" value="r" checked> Oku</label>
+                    <label><input type="checkbox" class="share-permission" value="u"> Yükle</label>
+                    <label><input type="checkbox" class="share-permission" value="d"> Sil</label>
+                </div>
+                <div class="share-actions">
+                    <button type="button" class="share-btn secondary" id="share-cancel">Vazgeç</button>
+                    <button type="submit" class="share-btn primary">Paylaş</button>
+                </div>
+            </form>
+            {% else %}
+            <p>Paylaşılabilecek kullanıcı bulunmuyor.</p>
+            <div class="share-actions">
+                <button type="button" class="share-btn primary" id="share-close-empty">Tamam</button>
+            </div>
+            {% endif %}
+        </div>
     </div>
     
     <script>
         $(document).ready(function() {
-            let selectedItemId = null;
+            let selectedItemPath = null;
+            let selectedItemType = null;
+            let selectedItemName = null;
+            const contextMenu = $("#context-menu");
+            const uploadForm = $("#upload-form");
+            const uploadOverlay = $("#upload-overlay");
+            const uploadProgress = $("#upload-progress");
+            const uploadToast = $("#upload-toast");
+            const canShare = {{ 'true' if can_share|default(False) else 'false' }};
+            const hasShareTargets = {{ 'true' if shareable_users|default([]) else 'false' }};
+            const canDeleteCurrentFolder = {{ 'true' if authorized['delete'] else 'false' }};
+            const canRenameCurrentFolder = {{ 'true' if authorized['upload'] else 'false' }};
+            const shareModal = $("#share-modal");
+            const shareForm = $("#share-form");
+            const shareToggle = $("#share-toggle");
+            const shareDetails = $("#share-details");
+            const shareEditForms = $(".share-edit-form");
+            const shareFolderName = $("#share-folder-name");
+            const shareUserSelect = $("#share-user-select");
+            const encodePathForUrl = (value) => value.split("/").map(encodeURIComponent).join("/");
+            let shareTargetPath = null;
+            let toastTimeout = null;
 
             $(".options").on("click", function(event) {
+                event.preventDefault();
                 event.stopPropagation();
-                selectedItemId = $(this).parent().data("path");
+                const parent = $(this).closest(".drive-item");
+                selectedItemPath = parent.data("path");
+                selectedItemType = parent.data("kind");
+                selectedItemName = parent.data("label");
 
-                $("#context-menu").css({
+                contextMenu.css({
                     top: event.pageY + "px",
                     left: event.pageX + "px"
                 }).show();
+
+                if (!canDeleteCurrentFolder) {
+                    $("#delete-item").addClass("disabled");
+                } else {
+                    $("#delete-item").removeClass("disabled");
+                }
+
+                if (!canRenameCurrentFolder) {
+                    $("#update-item").addClass("disabled");
+                } else {
+                    $("#update-item").removeClass("disabled");
+                }
+
+                if (!canShare || !hasShareTargets || selectedItemType === "file") {
+                    $("#share-item").addClass("disabled");
+                } else {
+                    $("#share-item").removeClass("disabled");
+                }
             });
 
             $(document).on("click", function() {
-                $("#context-menu").hide();
+                contextMenu.hide();
             });
 
-            $("#delete-item").on("click", function() {
-                $.post("/delete/" + selectedItemId, function(response) {
-                    if (response.success) {
-                        $("div[data-id='" + selectedItemId + "']").remove();
+            $(".drive-item").on("click", function(event) {
+                if ($(event.target).closest(".options").length) {
+                    return;
+                }
+                const href = $(this).data("href");
+                const target = $(this).data("target");
+                if (!href) return;
+                if (target === "_blank") {
+                    window.open(href, "_blank");
+                } else {
+                    window.location.href = href;
+                }
+            });
+
+            $("#delete-item").on("click", function(event) {
+                event.preventDefault();
+                if (!selectedItemPath || $(this).hasClass("disabled")) return;
+                const confirmDelete = confirm("Bu öğeyi silmek istediğine emin misin?");
+                if (!confirmDelete) {
+                    return;
+                }
+                $.ajax({
+                    url: "/delete/" + encodePathForUrl(selectedItemPath),
+                    type: "POST",
+                    success: function(response) {
+                        if (response.success) {
+                            $(".drive-item[data-path='" + selectedItemPath + "']").remove();
+                            contextMenu.hide();
+                        } else if (response.error) {
+                            alert(response.error);
+                        }
+                    },
+                    error: function(xhr) {
+                        let message = "Öğe silinirken bir hata oluştu.";
+                        if (xhr.responseJSON && xhr.responseJSON.error) {
+                            message = xhr.responseJSON.error;
+                        }
+                        alert(message);
                     }
                 });
             });
 
-            $("#update-item").on("click", function() {
-                let newName = prompt("Yeni adı girin:");
+            $("#update-item").on("click", function(event) {
+                event.preventDefault();
+                if (!selectedItemPath || $(this).hasClass("disabled")) return;
+                let newName = prompt("Yeni adı girin:", selectedItemName || "");
                 if (newName) {
                     $.ajax({
-                        url: "/update/" + selectedItemId,
+                        url: "/update/" + encodePathForUrl(selectedItemPath),
                         type: "POST",
                         contentType: "application/json",
                         data: JSON.stringify({ name: newName }),
                         success: function(response) {
-                            $("div[data-id='" + selectedItemId + "'] span:first").text(newName);
+                            if (response.success) {
+                                const card = $(".drive-item[data-path='" + selectedItemPath + "']");
+                                const oldPath = selectedItemPath;
+                                const updatedFullName = response.new_name || newName;
+                                const newPath = response.new_path || oldPath;
+                                const oldHref = card.data("href");
+                                if (oldHref) {
+                                    const oldEncodedPath = encodePathForUrl(oldPath);
+                                    const newEncodedPath = encodePathForUrl(newPath);
+                                    const newHref = oldHref.replace(oldEncodedPath, newEncodedPath);
+                                    card.attr("data-href", newHref).data("href", newHref);
+                                }
+
+                                card.attr("data-path", newPath).data("path", newPath);
+                                card.attr("data-label", updatedFullName).data("label", updatedFullName);
+                                card.find(".item-name").text(updatedFullName);
+
+                                selectedItemPath = newPath;
+                                selectedItemName = updatedFullName;
+                                contextMenu.hide();
+                            }
                         }
                     });
                 }
             });
-        });
 
-        $("#create-folder").on("click", function() {
+            $("#create-folder").on("click", function() {
                 let folderName = prompt("Yeni klasör adı:");
-
                 if (folderName) {
                     $.ajax({
                         url: "/create_folder/" + $(this).data("path"),
@@ -204,15 +893,228 @@
                         data: JSON.stringify({ name: folderName }),
                         success: function(response) {
                             if (response.success) {
-                                $("#filesystem").append(`<div class="item" data-id="${response.folder.id}" data-type="folder">
-                                    <span class="folder">${response.folder.name}</span>
-                                    <span class="options">⋮</span>
-                                </div>`);
+                                location.reload();
+                            } else if (response.error) {
+                                alert(response.error);
                             }
                         }
                     });
                 }
             });
+
+            $("#back-button").on("click", function() {
+                const parentPath = $(this).data("parent");
+                if (parentPath) {
+                    window.location.href = "/browse_folder/" + parentPath;
+                } else {
+                    window.location.href = "{{ url_for('my_drive') }}";
+                }
+            });
+
+            const showOverlay = () => {
+                uploadProgress.css("width", "0%");
+                uploadOverlay.addClass("active");
+            };
+
+            const hideOverlay = () => {
+                uploadOverlay.removeClass("active");
+                uploadProgress.css("width", "0%");
+            };
+
+            const showToast = (message) => {
+                if (!uploadToast.length) return;
+                uploadToast.text(message).addClass("show");
+                if (toastTimeout) {
+                    clearTimeout(toastTimeout);
+                }
+                toastTimeout = setTimeout(() => uploadToast.removeClass("show"), 2500);
+            };
+
+            const closeShareModal = () => {
+                shareModal.removeClass("open");
+                if (shareForm && shareForm.length) {
+                    shareForm[0].reset();
+                }
+            };
+
+            $("#share-item").on("click", function(event) {
+                event.preventDefault();
+                if ($(this).hasClass("disabled")) {
+                    return;
+                }
+                shareTargetPath = selectedItemPath;
+                shareFolderName.text(selectedItemName || "Seçilen klasör");
+                shareModal.addClass("open");
+                contextMenu.hide();
+            });
+
+            $("#share-cancel, #share-close-empty").on("click", function() {
+                closeShareModal();
+            });
+
+            if (shareForm && shareForm.length) {
+                shareForm.on("submit", function(event) {
+                    event.preventDefault();
+                    if (!shareTargetPath) {
+                        alert("Lütfen paylaşmak istediğiniz klasörü seçin.");
+                        return;
+                    }
+                    const selectedUser = shareUserSelect.val();
+                    const permissions = [];
+                    $(".share-permission:checked").each(function() {
+                        permissions.push($(this).val());
+                    });
+                    if (!permissions.length) {
+                        alert("En az bir izin seçmelisiniz.");
+                        return;
+                    }
+                    $.ajax({
+                        url: "{{ url_for('share_folder') }}",
+                        type: "POST",
+                        contentType: "application/json",
+                        data: JSON.stringify({
+                            folder_path: shareTargetPath,
+                            user_id: selectedUser,
+                            permissions: permissions.join("")
+                        }),
+                        success: function(response) {
+                            closeShareModal();
+                            showToast(response.message || "Klasör paylaşıldı");
+                        },
+                        error: function(xhr) {
+                            let message = "Klasör paylaşılırken bir hata oluştu.";
+                            if (xhr.responseJSON && xhr.responseJSON.error) {
+                                message = xhr.responseJSON.error;
+                            }
+                            alert(message);
+                        }
+                    });
+                });
+            }
+
+            if (shareEditForms && shareEditForms.length) {
+                shareEditForms.on("submit", function(event) {
+                    event.preventDefault();
+                    const form = $(this);
+                    const userId = form.data("user-id");
+                    const folderPath = form.data("folder");
+                    const permissions = [];
+                    form.find(".share-edit-permission:checked").each(function() {
+                        permissions.push($(this).val());
+                    });
+                    if (!permissions.length) {
+                        alert("En az bir izin seçmelisiniz.");
+                        return;
+                    }
+                    $.ajax({
+                        url: "{{ url_for('share_folder') }}",
+                        type: "POST",
+                        contentType: "application/json",
+                        data: JSON.stringify({
+                            folder_path: folderPath,
+                            user_id: userId,
+                            permissions: permissions.join("")
+                        }),
+                        success: function(response) {
+                            showToast(response.message || "Paylaşım güncellendi");
+                        },
+                        error: function(xhr) {
+                            let message = "Yetkiler güncellenirken bir hata oluştu.";
+                            if (xhr.responseJSON && xhr.responseJSON.error) {
+                                message = xhr.responseJSON.error;
+                            }
+                            alert(message);
+                        }
+                    });
+                });
+
+                $(".share-remove").on("click", function() {
+                    const form = $(this).closest(".share-edit-form");
+                    const userId = form.data("user-id");
+                    const folderPath = form.data("folder");
+                    if (!confirm("Bu kullanıcıyla olan paylaşımı kaldırmak istediğine emin misin?")) {
+                        return;
+                    }
+                    $.ajax({
+                        url: "{{ url_for('unshare_folder') }}",
+                        type: "POST",
+                        contentType: "application/json",
+                        data: JSON.stringify({
+                            folder_path: folderPath,
+                            user_id: userId
+                        }),
+                        success: function(response) {
+                            showToast(response.message || "Paylaşım kaldırıldı");
+                            form.remove();
+                        },
+                        error: function(xhr) {
+                            let message = "Paylaşım kaldırılırken bir hata oluştu.";
+                            if (xhr.responseJSON && xhr.responseJSON.error) {
+                                message = xhr.responseJSON.error;
+                            }
+                            alert(message);
+                        }
+                    });
+                });
+            }
+
+            if (shareToggle.length && shareDetails.length) {
+                shareToggle.on("click", function() {
+                    shareDetails.slideToggle(200);
+                });
+            }
+
+            if (uploadForm.length) {
+                uploadForm.on("submit", function(event) {
+                    event.preventDefault();
+                    const files = $("#file")[0].files;
+                    if (!files.length) {
+                        alert("Lütfen yüklemek için en az bir dosya seçin.");
+                        return;
+                    }
+
+                    const formData = new FormData(this);
+                    showOverlay();
+
+                    $.ajax({
+                        url: $(this).attr("action"),
+                        type: "POST",
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        xhr: function() {
+                            const xhr = $.ajaxSettings.xhr();
+                            if (xhr.upload) {
+                                xhr.upload.addEventListener("progress", function(e) {
+                                    if (e.lengthComputable) {
+                                        const percent = (e.loaded / e.total) * 100;
+                                        uploadProgress.css("width", percent + "%");
+                                    }
+                                });
+                            }
+                            return xhr;
+                        },
+                        success: function() {
+                            uploadProgress.css("width", "100%");
+                            setTimeout(() => {
+                                hideOverlay();
+                                showToast("Dosya başarıyla yüklendi!");
+                                $("#file").val("");
+                                setTimeout(() => location.reload(), 1200);
+                            }, 300);
+                        },
+                        error: function(xhr) {
+                            hideOverlay();
+                            let message = "Dosya yüklenirken bir hata oluştu.";
+                            if (xhr.responseJSON && xhr.responseJSON.error) {
+                                message = xhr.responseJSON.error;
+                            }
+                            alert(message);
+                        }
+                    });
+                });
+            }
+        });
     </script>
 
     {% endif %}

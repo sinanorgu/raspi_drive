@@ -1,0 +1,90 @@
+{% extends "layout.html" %}
+
+{% block title %}Shared with Me - Raspi Drive{% endblock %}
+
+{% block head %}
+<style>
+    .shared-list {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .shared-list th,
+    .shared-list td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #e0e0e0;
+        text-align: left;
+    }
+    .shared-list th {
+        background: #f8f8f8;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .permission-chip {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
+        background: #eef2ff;
+        color: #3949ab;
+        font-size: 12px;
+        margin-right: 4px;
+    }
+    .empty-state {
+        text-align: center;
+        padding: 40px 0;
+        color: #777;
+    }
+    .shared-link {
+        color: #007bff;
+        text-decoration: none;
+        font-weight: bold;
+    }
+    .shared-link:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Benimle Paylaşılan Klasörler</h1>
+
+{% if folder_list %}
+<table class="shared-list">
+    <thead>
+        <tr>
+            <th>Klasör</th>
+            <th>Sahibi</th>
+            <th>İzinler</th>
+            <th>Görüntüle</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for folder in folder_list %}
+        <tr>
+            <td>{{ folder.folder_name }}</td>
+            <td>{{ folder.owner_name }}</td>
+            <td>
+                {% if 'r' in folder.permissions %}
+                <span class="permission-chip">Oku</span>
+                {% endif %}
+                {% if 'u' in folder.permissions %}
+                <span class="permission-chip">Yükle</span>
+                {% endif %}
+                {% if 'd' in folder.permissions %}
+                <span class="permission-chip">Sil</span>
+                {% endif %}
+            </td>
+            <td>
+                <a class="shared-link" href="{{ url_for('browse_folder', path=folder.folder_name) }}">Klasöre Git →</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="empty-state">
+    Şu an için seninle paylaşılan bir klasör bulunmuyor.
+    <br>Paylaşıldığında burada görebileceksin.
+</div>
+{% endif %}
+{% endblock %}

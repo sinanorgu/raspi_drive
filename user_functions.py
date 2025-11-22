@@ -148,6 +148,11 @@ def is_valid_filename(filename):
     return True
 
 
+def is_previewable_image(filename):
+    _, extension = os.path.splitext(filename.lower())
+    return extension in {'.jpg', '.jpeg', '.png', '.gif'}
+
+
 def get_used_storage(user_id):
     storage = 0
     for root, dirs, files in os.walk('media/' + str(user_id)):
@@ -155,6 +160,41 @@ def get_used_storage(user_id):
             storage += os.path.getsize(os.path.join(root, file))
     return storage
 
+
+
+def get_shared_folders(user_id):
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    cursor.execute(
+        '''
+        SELECT shared_folders.folder_id,
+               folders.folder_name,
+               shared_folders.permissions,
+               folders.user_id as owner_id,
+               owners.username as owner_name
+        FROM shared_folders
+        JOIN folders ON folders.folder_id = shared_folders.folder_id
+        JOIN users owners ON owners.user_id = folders.user_id
+        WHERE shared_folders.user_id = ?
+          AND folders.user_id != ?
+        ''',
+        (user_id, user_id)
+    )
+
+    shared_folders = [
+        {
+            "folder_id": row[0],
+            "folder_name": row[1],
+            "permissions": row[2],
+            "owner_id": row[3],
+            "owner_name": row[4]
+        }
+        for row in cursor.fetchall()
+    ]
+
+    cursor.close()
+    conn.close()
+    return shared_folders
 
 
 
@@ -207,3 +247,8 @@ def check_token(token):
         return True
     else:
         return False
+    
+
+
+if __name__ == "__main__":
+    print(get_shared_folders(2))

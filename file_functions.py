@@ -2,9 +2,11 @@ from flask import Flask, flash, render_template, request, redirect, url_for, ses
 import os
 import sqlite3
 import user_functions
+import mimetypes
 
 MAGIC_STRING = b"!@#$%^&*()_+"
 ALLOWED_MIME_TYPES = {'image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'video/mp4'}
+PREVIEWABLE_IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.gif'}
 
 
 
@@ -40,6 +42,19 @@ def browse_file(path):
     return send_file(decrypted_file_io, as_attachment=True, download_name=path.split('/')[-1])
     #return send_file('media/'+ path, as_attachment=True, mimetype="application/octet-stream")
     #return send_from_directory('media/', path)
+
+
+def preview_file(path):
+    file_path = 'media/' + path
+    if not os.path.isfile(file_path):
+        return jsonify({"success": False, "message": "File not found"})
+
+    _, extension = os.path.splitext(file_path)
+    if extension.lower() not in PREVIEWABLE_IMAGE_EXTS:
+        return jsonify({"success": False, "message": "Preview not available for this file type"}), 400
+
+    mimetype = mimetypes.guess_type(file_path)[0] or 'image/jpeg'
+    return send_file(file_path, mimetype=mimetype)
 
 
 def upload_file(path,request):
@@ -89,7 +104,7 @@ def upload_file(path,request):
             cursor.execute('SELECT storage_limit FROM users WHERE user_id = ?', (path.split("/")[0] ,))
             storage_limit = cursor.fetchone()[0]
 
-            used_storage = 0 # needs to be calculated
+            #used_storage = 0 # needs to be calculated
             used_storage = user_functions.get_used_storage(session['user_id'])
 
 
