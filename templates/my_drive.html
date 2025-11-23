@@ -598,6 +598,10 @@
                 <input type="file" name="file" id="file" class="upload-input" multiple>
                 <button type="submit" class="btn secondary">Dosya Yükle</button>
             </form>
+            <form action="{{url_for('upload_file',path = current_folder_path)}}"  enctype="multipart/form-data"  method="post" class="upload-form" id="upload-folder-form">
+                <input type="file" name="file" id="folder-input" class="upload-input" webkitdirectory directory multiple>
+                <button type="submit" class="btn secondary">Klasör Yükle</button>
+            </form>
         </div>
         {% endif %}
 
@@ -750,6 +754,8 @@
             let selectedItemName = null;
             const contextMenu = $("#context-menu");
             const uploadForm = $("#upload-form");
+            const uploadFolderForm = $("#upload-folder-form");
+            const folderInput = $("#folder-input");
             const uploadOverlay = $("#upload-overlay");
             const uploadProgress = $("#upload-progress");
             const uploadToast = $("#upload-toast");
@@ -1064,16 +1070,27 @@
                 });
             }
 
-            if (uploadForm.length) {
-                uploadForm.on("submit", function(event) {
+            const handleUploadForm = (formEl, inputEl, useRelativePaths = false) => {
+                if (!formEl.length) return;
+                formEl.on("submit", function(event) {
                     event.preventDefault();
-                    const files = $("#file")[0].files;
+                    const files = inputEl[0].files;
                     if (!files.length) {
                         alert("Lütfen yüklemek için en az bir dosya seçin.");
                         return;
                     }
 
-                    const formData = new FormData(this);
+                    let formData;
+                    if (useRelativePaths) {
+                        formData = new FormData();
+                        Array.from(files).forEach((f) => {
+                            const relPath = f.webkitRelativePath || f.name;
+                            formData.append("file", f, relPath);
+                        });
+                    } else {
+                        formData = new FormData(this);
+                    }
+
                     showOverlay();
 
                     $.ajax({
@@ -1098,14 +1115,14 @@
                             uploadProgress.css("width", "100%");
                             setTimeout(() => {
                                 hideOverlay();
-                                showToast("Dosya başarıyla yüklendi!");
-                                $("#file").val("");
+                                showToast("Yükleme tamamlandı!");
+                                inputEl.val("");
                                 setTimeout(() => location.reload(), 1200);
                             }, 300);
                         },
                         error: function(xhr) {
                             hideOverlay();
-                            let message = "Dosya yüklenirken bir hata oluştu.";
+                            let message = "Yükleme sırasında bir hata oluştu.";
                             if (xhr.responseJSON && xhr.responseJSON.error) {
                                 message = xhr.responseJSON.error;
                             }
@@ -1113,7 +1130,10 @@
                         }
                     });
                 });
-            }
+            };
+
+            handleUploadForm(uploadForm, $("#file"));
+            handleUploadForm(uploadFolderForm, folderInput, true);
         });
     </script>
 

@@ -58,23 +58,16 @@ def preview_file(path):
 
 
 def upload_file(path,request):
-    
-    
     if path.split('/')[0] != str(session['user_id']):
         conn = sqlite3.connect('database.db')
         cursor = conn.cursor()
-        #cursor.execute('SELECT folder_name,permissions from folders,shared_folders where folders.folder_id = shared_folders.folder_id and folders.folder_id =  (select folder_id from shared_folders WHERE user_id = ? )',(session['user_id'],))
         cursor.execute('SELECT * from (SELECT folder_name,permissions,shared_folders.user_id from folders,shared_folders where folders.folder_id = shared_folders.folder_id ) where user_id = ? ',(session['user_id'],))
-        
         shared_folders = cursor.fetchall()
         cursor.close()
         conn.close()
-        #shared_folders = [i[0] for i in shared_folders]
-        #print(shared_folders)
         authorized = False
         for i in shared_folders:
             if path.startswith(i[0]) and 'u' in i[1]:
-                print("authorized:",i)
                 authorized = True
                 break
         if not authorized:
@@ -82,40 +75,59 @@ def upload_file(path,request):
 
     if request.method == "POST":
         files = request.files.getlist('file')  # Tüm dosyaları al
-        #print(files)
+        if not files:
+            return jsonify({"error": "No selected file"}), 400
 
+        owner_id = int(path.split("/")[0])
+        conn = sqlite3.connect('database.db')
+        cursor = conn.cursor()
+        cursor.execute('SELECT storage_limit FROM users WHERE user_id = ?', (owner_id ,))
+        storage_limit = cursor.fetchone()[0]
+        used_storage = user_functions.get_used_storage(owner_id)
+        accumulated_size = 0
+
+        def ensure_folder_record(folder_path):
+            cursor.execute('SELECT folder_id FROM folders WHERE folder_name = ?', (folder_path,))
+            row = cursor.fetchone()
+            if not row:
+                cursor.execute('INSERT INTO folders (folder_name, user_id) VALUES (?, ?)', (folder_path, owner_id))
+                conn.commit()
+                cursor.execute("INSERT INTO shared_folders (folder_id, user_id, permissions) VALUES (?, ?, ?)", (cursor.lastrowid, owner_id, "rud"))
+                conn.commit()
 
         for file in files:
             if file.filename == '':
+                cursor.close()
+                conn.close()
                 return jsonify({"error": "No selected file"}), 400
-
-
 
             file_data = file.read()
             signature = file_data[:8]  # İlk 8 baytı oku
 
-            
-            #print(type(file_data))
-            #print(len(file_data))
-            
-
-            conn = sqlite3.connect('database.db')
-            cursor = conn.cursor()
-            cursor.execute('SELECT storage_limit FROM users WHERE user_id = ?', (path.split("/")[0] ,))
-            storage_limit = cursor.fetchone()[0]
-
-            #used_storage = 0 # needs to be calculated
-            used_storage = user_functions.get_used_storage(session['user_id'])
-
-
-            if used_storage + len(file_data) > storage_limit*1000*1000: # Mb to bytes
+            if used_storage + accumulated_size + len(file_data) > storage_limit*1000*1000: # Mb to bytes
                 cursor.close()
                 conn.close()
                 return jsonify({"error": "Storage limit exceeded"}), 400
-            
 
-            
-            file_path = 'media/' + path + '/' + file.filename
+            relative_path = (file.filename or "").replace("\\", "/")
+            if not relative_path:
+                cursor.close()
+                conn.close()
+                return jsonify({"error": "Invalid file name"}), 400
+            dest_relative = path.rstrip('/') + '/' + relative_path
+            dest_directory_parts = dest_relative.split('/')[:-1]
+
+            current = ''
+            for part in dest_directory_parts:
+                if current:
+                    current = current + '/' + part
+                else:
+                    current = part
+                if current:
+                    os.makedirs('media/' + current, exist_ok=True)
+                    ensure_folder_record(current)
+
+            file_path = 'media/' + dest_relative
         
             if detect_mime_type_with_signature(signature) in ALLOWED_MIME_TYPES:
                 with open(file_path, "wb") as f:
@@ -124,15 +136,16 @@ def upload_file(path,request):
                 with open(file_path, "wb") as f:
                     f.write(MAGIC_STRING + file_data)
 
-            cursor.execute('INSERT INTO files (file_name, title, file_size, user_id) VALUES (?, ?, ?, ?)', (file.filename, file.filename, len(file_data), session['user_id']))
+            stored_name = dest_relative
+            cursor.execute('INSERT INTO files (file_name, title, file_size, user_id) VALUES (?, ?, ?, ?)', (stored_name, stored_name, len(file_data), owner_id))
             conn.commit()
-            cursor.execute("INSERT INTO shared_files (file_id, user_id) VALUES (?, ?)", (cursor.lastrowid, session['user_id']))
+            cursor.execute("INSERT INTO shared_files (file_id, user_id) VALUES (?, ?)", (cursor.lastrowid, owner_id))
             conn.commit()
-            cursor.close()
-            conn.close()
 
+            accumulated_size += len(file_data)
 
-        
+        cursor.close()
+        conn.close()
 
         return jsonify({"message": "File stored securely"}), 200
     
